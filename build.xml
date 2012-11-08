@@ -1,0 +1,226 @@
+<project name="Scrapi" default="full" basedir=".">
+        <property environment="env"/>
+
+        <property name="src.dir" location="src"/>
+        <property name="build.dir" location="build"/>
+        <property name="build.instr.dir" location="build_instr" />
+        <property name="dist.dir" location="dist"/>
+        <property name="lib.dir" location="lib"/>
+        <property name="coverage.dir" location="coverage"/>
+        <property name="sonar.dir" location=".sonar"/>
+        <property name="logs.dir" location="logs"/>
+
+        <property name="scrapi.jar.file" value="lib/scrapi.jar" />
+
+        <loadfile property="release_version" srcFile="VERSION">
+                <filterchain>
+                        <striplinebreaks/>
+                </filterchain>
+        </loadfile>
+
+        <property name="test.conf" value="test_conf"/>
+
+        <tstamp>
+                <format property="epoch" pattern="yyyyMMddHHmmss"/>
+        </tstamp>
+        <property name="build.number" value="${epoch}"/>
+
+        <!-- http://emma.sourceforge.net/userguide/ar01s03.html -->
+        <path id="emma.lib">
+                <pathelement location="${lib.dir}/emma.jar" />
+                <pathelement location="${lib.dir}/emma_ant.jar" />
+        </path>
+
+        <path id="sonar.lib">
+                <pathelement location="${lib.dir}/sonar-ant-task-1.2.jar" />
+        </path>
+
+        <path id="compile.classpath">
+                <fileset dir="${lib.dir}">
+                        <include name="*.jar" />
+                </fileset>
+        </path>
+
+        <path id="test.classpath">
+                <fileset dir="${lib.dir}">
+                        <include name="*.jar" />
+                </fileset>
+                <pathelement location="${build.dir}" />
+                <pathelement location="${test.conf}"/>
+        </path>
+
+        <!-- http://stackoverflow.com/questions/1821803/creating-a-bundle-jar-with-ant -->
+        <pathconvert property="manifest.classpath" pathsep=" ">
+                <path refid="compile.classpath" />
+                <mapper>
+                        <chainedmapper>
+                                <flattenmapper />
+                                <globmapper from="*.jar" to="lib/*.jar" />
+                        </chainedmapper>
+                </mapper>
+        </pathconvert>
+
+        <!-- http://rwatsh.blogspot.com/2008/03/using-testng-with-emma-for-automating.html -->
+        <taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+
+        <!-- http://docs.codehaus.org/display/SONAR/Analyse+with+Ant+Task -->
+        <taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml" classpathref="sonar.lib" />
+
+        <!--
+                Emma task definition macros. These can safely be included anywhere; they respect the 'emma.enabled'
+                attribute that is toggled on when someone invokes the 'emma' target, so if Emma hasn't been enabled
+                by running that target, nothing is done to the class files and no output is generated.
+
+                http://web.archiveorange.com/archive/v/bnxdGs8j1CrCUqbRW5xM for macro help
+        -->
+
+        <!--
+                Run before the desired load-driving to instrument classes for coverage analysis.
+                Required Argument "emmaclasspathref": The ID of the classpath element to instrument.
+        -->
+        <macrodef name="emma_pre">
+                <attribute name="emmaclasspathref" />
+                <sequential>
+                        <emma enabled="${emma.enabled}" verbosity="info">
+                                <instr instrpathref="@{emmaclasspathref}"
+                                                         destdir="${build.instr.dir}"
+                                                         metadatafile="${coverage.dir}/metadata.emma"
+                                                         merge="true">
+                                        <filter includes="com.threecrowd.*" />
+                                        <filter excludes="com.threecrowd.scrapi.Test*" />
+                                </instr>
+                        </emma>
+                </sequential>
+        </macrodef>
+
+        <!-- Run after the desired load-driving to generate a text and HTML report of coverage. -->
+        <macrodef name="emma_post">
+                <sequential>
+                        <emma enabled="${emma.enabled}" verbosity="quiet">
+                                <report sourcepath="${src.dir}">
+                                        <fileset dir="${coverage.dir}">
+                                                <include name="*.emma" />
+                                        </fileset>
+                                        <txt outfile="${coverage.dir}/coverage.txt" />
+                                        <html outfile="${coverage.dir}/coverage.html" />
+                                        <xml outfile="${coverage.dir}/coverage.xml" />
+                                </report>
+                        </emma>
+                </sequential>
+        </macrodef>
+
+        <!--
+                Helper target to enable EMMA for the current run.       If this isn't invoked, everything *should* work the same as
+                it would if EMMA weren't available at all.      http://emma.sourceforge.net/userguide/ar01s03s03.html
+        -->
+        <target name="emma">
+                <property name="emma.enabled" value="true" />
+                <mkdir dir="${build.instr.dir}" />
+        </target>
+
+        <!-- http://docs.codehaus.org/display/SONAR/Analyse+with+Ant+Task -->
+        <target name="sonar" depends="compile">
+                <property name="sonar.sources" value="${src.dir}" />
+                <property name="sonar.binaries" value="${build.dir}" />
+                <sonar:sonar key="com.threecrowd:scrapi" version="DEV" xmlns:sonar="antlib:org.sonar.ant" />
+        </target>
+
+        <path id="sonar.libraries">
+                <path refid="compile.classpath" />
+        </path>
+
+        <target name="clean">
+                <delete dir="${build.dir}"/>
+                <delete dir="${build.instr.dir}"/>
+                <delete dir="${dist.dir}"/>
+                <delete dir="${coverage.dir}"/>
+                <delete dir="${sonar.dir}"/>
+                <delete dir="${logs.dir}"/>
+        </target>
+
+        <target name="init" depends="clean">
+                <mkdir dir="${build.dir}" />
+                <mkdir dir="${build.dir}/resources"/>
+                <mkdir dir="${logs.dir}" />
+                <copy file="log4j.conf" todir="${build.dir}/resources"/>
+        </target>
+
+        <target name="compile" depends="init">
+                <javac srcdir="${src.dir}" classpathref="compile.classpath" destdir="${build.dir}" includeantruntime="false" debug="on">
+                        <compilerarg value="-Xlint:unchecked" />
+                        <compilerarg value="-Xlint:finally" />
+                        <compilerarg value="-Xlint:deprecation" />
+                </javac>
+        </target>
+
+        <target name="onetest" depends="compile">
+                <emma_pre emmaclasspathref="test.classpath" />
+                <junit haltonfailure="on" printsummary="yes" fork="yes" timeout="120000" showOutput="yes">
+                        <classpath>
+                                <!--
+                                        Pick up instrumented classes first, if there are any.   If this directory doesn't exist (i.e., we're
+                                        running without Emma enabled), no problem, we'll just default to the contents of test.classpath.
+                                        http://emma.sourceforge.net/userguide/ar01s03s03.html
+                                        -->
+                                <pathelement location="${build.instr.dir}" />
+                                <path refid="test.classpath" />
+                        </classpath>
+                        <sysproperty key="java.library.path" value="${env.LD_LIBRARY_PATH}"/>
+                        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/coverage.emma" />
+                        <jvmarg value="-Demma.coverage.out.merge=true" />
+                        <jvmarg value="-Djava.library.path=${env.LD_LIBRARY_PATH}"/>
+                        <formatter type="plain" usefile="false"/>
+                        <test name="com.threecrowd.scrapi.TestMessageProcessor"/>
+                </junit>
+                <emma_post />
+        </target>
+
+        <target name="test" depends="compile">
+                <emma_pre emmaclasspathref="test.classpath" />
+                <junit haltonfailure="on" printsummary="yes" fork="yes" timeout="120000" showOutput="yes">
+                        <classpath>
+                                <!--
+                                        Pick up instrumented classes first, if there are any.   If this directory doesn't exist (i.e., we're
+                                        running without Emma enabled), no problem, we'll just default to the contents of test.classpath.
+                                        http://emma.sourceforge.net/userguide/ar01s03s03.html
+                                        -->
+                                <pathelement location="${build.instr.dir}" />
+                                <path refid="test.classpath" />
+                        </classpath>
+                        <sysproperty key="java.library.path" value="${env.LD_LIBRARY_PATH}"/>
+                        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/coverage.emma" />
+                        <jvmarg value="-Demma.coverage.out.merge=true" />
+                        <jvmarg value="-Djava.library.path=${env.LD_LIBRARY_PATH}"/>
+                        <formatter type="plain" usefile="false"/>
+                        <test name="com.threecrowd.scrapi.TestLogSetup"/>
+                        <test name="com.threecrowd.scrapi.TestConfigReaders"/>
+                        <test name="com.threecrowd.scrapi.TestStatsObject"/>
+                        <test name="com.threecrowd.scrapi.TestRestInterfaceHandler"/>
+                </junit>
+                <emma_post />
+        </target>
+
+        <target name="jar" depends="compile">
+                <mkdir dir="${dist.dir}/lib"/>
+                <jar jarfile="${dist.dir}/${scrapi.jar.file}" basedir="${build.dir}" excludes="**/Test*.class">
+                        <!-- http://stackoverflow.com/questions/1821803/creating-a-bundle-jar-with-ant -->
+                        <!-- http://stackoverflow.com/questions/2823187/how-do-you-use-ant-to-unjar-multiple-jar-files-and-rebuild-them-into-one-jar-file -->
+                        <zipgroupfileset dir="${lib.dir}" includes="*.jar" />
+                        <manifest>
+                                <attribute name="Implementation-Version" value="${release_version}-${build.number}"/>
+                                <attribute name="Main-Class" value="com.threecrowd.scrapi.ScrapiStarter" />
+                                <attribute name="Class-Path" value="${manifest.classpath}" />
+                        </manifest>
+                </jar>
+        </target>
+
+        <target name="package" depends="compile,jar">
+                <exec executable="fpm">
+                        <arg line="-s dir -t deb -n scrapi -v ${release_version} --iteration ${build.number} --prefix /opt/scrapi/bin -C dist/lib -p dist/lib/scrapi-${release_version}-${build.number}_amd64.deb --description 'XDN Scrapi Server' scrapi.jar"/>
+                </exec>
+        </target>
+
+        <target name="full" depends="test,jar"/>
+        <target name="notest" depends="compile,jar"/>
+
+</project>

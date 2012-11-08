@@ -1,0 +1,13 @@
+#!/bin/sh
+exec 2>&1
+exec chpst -u scrapi:scrapi \
+  /usr/bin/java -Xmx1G -Xms1G -Xmn128M -XX:+UseParNewGC -XX:ParallelCMSThreads=2 -XX:+UseConcMarkSweepGC \
+        <% if @options[:gc_log_enable] %>-Xloggc:<%= @options[:gc_log_path] %> -XX:+PrintGCDateStamps<% end %> \
+	-Dcom.sun.management.jmxremote \
+	-Dcom.sun.management.jmxremote.host=127.0.0.1 \
+	-Dcom.sun.management.jmxremote.port=50003 \
+	-Dcom.sun.management.jmxremote.authenticate=false \
+	-Dcom.sun.management.jmxremote.ssl=false \
+	-jar /opt/scrapi/bin/scrapi.jar \
+		-c <%= File.join(@options[:config_dir], @options[:config_file_name]) %> \
+		-l <%= File.join(@options[:config_dir], @options[:config_logging_file_name]) %>

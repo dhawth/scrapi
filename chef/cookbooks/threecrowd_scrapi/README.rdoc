@@ -1,0 +1,16 @@
+= DESCRIPTION:
+
+This cookbook installs and configures SCRAPI using environment settings and other metadata.
+It discovers what cassandra servers to use by looking for nodes that have the threecrowd_cassandra
+cookbook applied, so you will probably have to change that.
+
+This cookbook defines nagios checks and thus depends on the nagios cookbook.
+
+= REQUIREMENTS:
+
+This cookbook assumes you are using runit to manage your services.
+
+= ATTRIBUTES: 
+
+= USAGE:
+

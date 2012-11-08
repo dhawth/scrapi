@@ -1,0 +1,108 @@
+//
+// This config file is managed by CHEF
+//
+// Sample Cassandra API Server File
+//
+{
+        //
+        // by default, This runs on port 80.  To change the port, update this value.
+        //
+        // "local_port"    : 80,
+        "local_port"    : <%= @scrapi[:listen_port] %>,
+
+        //
+        // by default this binds to 0.0.0.0, and that can be overridden here
+        //
+        // "local_address"       : "10.10.10.10",
+	"local_address"	: "<%= @scrapi[:listen_ip] %>",
+
+        //
+        // the hostname of the cassandra vip (you ARE using a vip, right?)
+        // default: localhost:9160
+        //
+        //"cassandra_host" : "cassy.vip.sjc1.3crowd.com:9160",
+	"cassandra_host" : "<%= @scrapi[:cassy_servers].join(",") %>",
+
+        //
+        // stats configuration
+        //
+        "statsd_config" : {
+                "hostname" : "<%= @scrapi[:statsd][:host] %>",
+                "port" : <%= @scrapi[:statsd][:port] %>,
+                //
+                // how many seconds between runs of wrapping up the StatsObject and shipping it off
+                // to statsd
+                //
+                "period" : <%= @scrapi[:statsd][:period] %>,            // 10 seconds
+                //
+                // the string to prepend to all keys before shipping to statsd, this is an optimization
+                // so we don't have to include this string in all of the statsobject update() calls.
+                // it also makes testing easier with shorter key names.
+                //
+                "prepend_strings" : [
+                        <%= @scrapi[:statsd][:prepend_strings].join(",") %>
+                ]
+        },
+
+        //
+        // how long to hold a socket open for a client, waiting for them to send a
+        // request.  I set this at 15 seconds so humans could connect and manually
+        // type in a request
+        // default: 15
+        //
+        "client_idle_timeout"   : 15,
+
+        //
+        // This is a hash where we can specify configuration variables
+        // that will affect the guts of how the server works
+        //
+        "jetty_config" : {
+                //
+                // single_threaded = true to disable threading
+                // main_thread_pool_size = "integer" to set the number of threads to let jetty use
+                // max_error_log_size = "2GB" default
+                // max_number_of_error_logs = "10" default
+                //
+                // number of acceptors and accept queue size are jetty tunables
+                //
+                "number_of_acceptors"   : 2,
+                "accept_queue_size"     : 200
+        },
+        "cassandra_config" : {
+                //
+                // maximum connctions to cassandra to hold in the connection pool
+                // default: 20
+                // this value can affect the concurrency that can be achieved with one SCRAPI server
+                //
+                "max_cassandra_connections" : 5,
+                //
+                // socket timeout for cassandra connections, in milliseconds
+                // note that this is the timeout for ALL operations, not just connecting to the cluster.
+                // as such, it should be high enough that no reads will time out, and we just have to eat
+                // the long connection timeouts for now.  The hector client library does not support
+                // setting a separate timeout on connections.
+                // This may need to be raised, but with a care for how long we want customers to have to
+                // wait to find out their graph isn't going to load.
+                // default: 2s
+                //
+                "cassandra_socket_timeout"   : 5000,
+                //
+                // set the retry interval in seconds for attempting to reconnect to a down
+                // cassandra host
+                // default: 1 second
+                //
+                "cassandra_connection_retry_time"       : 100
+        },
+
+	//
+	// You should not need to change this ever, either
+	//
+        "column_families" : {
+                "rollup10s"     : 10,
+                "rollup1m"      : 60,
+                "rollup5m"      : 300,
+                "rollup10m"     : 600,
+                "rollup1h"      : 3600,
+                "rollup1d"      : 86400
+        }
+}

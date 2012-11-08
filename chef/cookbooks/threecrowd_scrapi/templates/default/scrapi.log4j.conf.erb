@@ -1,0 +1,82 @@
+# the path to the log directory used in the rolling file appender(s)
+log=<%= @log_dir %>
+
+# log4j has loggers that write to appenders.  appenders are configured at the top of this
+# file (following the rootLogger) and the loggers follow
+
+# a note on addivitity settings:  additivity = false means anything logged for this
+# topic is NOT also logged by the rootLogger.  By default, additivity = true, so any
+# logger configured will ALSO be logged by the rootLogger, which can lead to duplicate
+# log lines if they are going to the same destination (appender)
+
+# the default log settings for the entire program, overridden for specific classes below
+log4j.rootLogger=<%= @log_level %>, logfile, stdout
+
+# a standard logger to send things to stdout
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d [%t] %-5p - %m%n
+
+# a verbose logger that sends things to stdout
+log4j.appender.stdout_verbose=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout_verbose.layout=org.apache.log4j.EnhancedPatternLayout
+log4j.appender.stdout_verbose.layout.ConversionPattern=%d [%t] %-5p (%F:%L) %C::%M - %m%n
+
+# a standard rolling file appender
+log4j.appender.logfile=org.apache.log4j.RollingFileAppender
+log4j.appender.logfile.File=${log}/scrapi.log
+log4j.appender.logfile.ImmediateFlush=false
+log4j.appender.logfile.Append=true
+log4j.appender.logfile.MaxFileSize=2GB
+log4j.appender.logfile.MaxBackupIndex=10
+log4j.appender.logfile.layout=org.apache.log4j.PatternLayout
+log4j.appender.logfile.layout.ConversionPattern=%d [%t] %-5p - %m%n
+
+# a verbose rolling file appender
+log4j.appender.logfile_verbose=org.apache.log4j.RollingFileAppender
+log4j.appender.logfile_verbose.File=${log}/scrapi.log
+log4j.appender.logfile_verbose.ImmediateFlush=true
+log4j.appender.logfile_verbose.Append=true
+log4j.appender.logfile_verbose.MaxFileSize=2GB
+log4j.appender.logfile_verbose.MaxBackupIndex=10
+log4j.appender.logfile_verbose.layout=org.apache.log4j.EnhancedPatternLayout
+log4j.appender.logfile_verbose.layout.ConversionPattern=%d [%t] %-5p (%F:%L) %C::%M - %m%n
+
+# define a null appender to send unwanted log messages to /dev/null
+log4j.appender.null=org.apache.log4j.varia.NullAppender
+
+# shut up the apache client library by diverting it to the above null appender
+# apache client library logs via commons-logging, which can detect that we are using
+# log4j, and we can shut it off.  Docs at http://hc.apache.org/httpclient-3.x/logging.html
+# this turns off all logging comming from the apache commons logging framework, which
+# only the apache http client uses
+log4j.logger.org.apache.commons.logging.Log=OFF
+log4j.additivity.org.apache.commons.logging.Log=false
+
+# and just to be specific, this turns off the http client stuff as documented on that page
+log4j.logger.org.apache.http=INFO
+log4j.logger.org.apache.http.wire=ERROR
+log4j.logger.org.apache.http.wire.header=ERROR
+log4j.logger.org.apache.commons.httpclient=ERROR
+log4j.additivity.org.apache.httpclient.wire.header=false
+log4j.additivity.org.apache.commons.httpclient=false
+
+# configure the jetty logging
+# incomplete docs available at:  http://docs.codehaus.org/display/JETTY/Debugging
+# other documentation available in jetty-start/src/main/resources/org/eclipse/jetty/start/usage.txt
+# documentation isn't all that great, unfortunately, so some of this is trial and error
+# jetty logs to slf4j which we have going to log4j and is configured here, for the most part
+# this all happens automagically just by having the slf4j-api and slf4j-log4j jar files
+# in the classpath, so don't remove those.
+# the path looks like this: Jetty Log -> Jetty slf4jlog -> slf4j-api -> slf4j-log4j -> log4j -> configured appenders
+# jetty has a few system properties settings that can be set on the command line
+# using the java -D flag.  Those same properties have analagous configurables in the
+# crowdcache node config file in the user_defined_attributes section.
+
+# do not also send it to the root logger.  setting additivity to false prevents
+# duplicate logging
+# log4j.logger.org.eclipse.log=DEBUG, stdout_verbose
+# log4j.additivity.org.eclipse.log=false
+
+# log4j.logger.org.eclipse.jetty.util.log=DEBUG, stdout_verbose
+# log4j.additivity.org.eclipse.jetty.util.log=false

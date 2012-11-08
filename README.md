@@ -1,3 +1,8 @@
+SCRAPI
+======
+
+SCRAPI - a Java web server API endpoint for Cassandra time-series data
+
 Description
 ===========
 
@@ -12,12 +17,12 @@ to support multiple output formats.
 Example schema
 ==============
 
-Keyspace:  STATS
-Column Family:  rollup1d (containing data rolled up to 1 day buckets)
-Row:  "total hits by page id"
-Column:
-	Field 1: the timestamp: 1234567890 (epoch time in seconds)
-	Field 2: the page id: 57
+	Keyspace:  STATS
+	Column Family:  rollup1d (containing data rolled up to 1 day buckets)
+	Row:  "total hits by page id"
+	Column:
+		Field 1: the timestamp: 1234567890 (epoch time in seconds)
+		Field 2: the page id: 57
 
 A query must include the keyspace, column family, and row name.  A query SHOULD contain at
 least a start time.  A query MAY contain a limit on the number of columns to return, a flag
@@ -47,12 +52,12 @@ the standard as it will be very difficult and time-consuming to change it.
 
 To be specific, one row in the rollup5m column family only contains data for a 24 hour period.
 
-CF			Amount of Time Per Row		Total number of timestamps in each row, max
-
-rollup5m		24 hours			288
-rollup1h		7 days				168
-rollup1d		4 months			124
-rollup1M (monthly data)	10 years			120
+	CF			Amount of Time Per Row		Total number of timestamps in each row, max
+	
+	rollup5m		24 hours			288
+	rollup1h		7 days				168
+	rollup1d		4 months			124
+	rollup1M (monthly data)	10 years			120
 
 NASTY DETAILS ABOUT THE NASTY DETAILS
 =====================================
@@ -65,13 +70,13 @@ Example Queries
 
 Queries that would return all page ids for all timestamps in the specified ranges within the specified limits:
 
-curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&end=2000000000
-curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&end=2000000000&reversed=true
-curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&limit=2
+	curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&end=2000000000
+	curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&end=2000000000&reversed=true
+	curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/?start=0&limit=2
 
 A query for a specific page id (page id 57):
 
-curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/57?start=0&limit=2
+	curl -H "CassandraAPIVersion: 1.0" http://127.0.0.1:9912/STATS/rollup1d/total hits by page id/57?start=0&limit=2
 
 Output Format
 =============
@@ -81,36 +86,36 @@ section are in order.  This data can easily be turned into a line graph or a pie
 
 Example query output for the query for a specific page id (page id 57):
 
-{
-   "metadata" : {
-      "count" : 6,			// how many records returned
-      "version" : 1,			// output version
-      "has_more" : true,		// there are more records to fetch, we should
-					// issue another query using next_start!
-      "next_start" : "1463011200",
-      "cake" : false			// the cake is always a lie
-   },
-   "data" : {
-      "1454457600" : {
-         "57" : 27
-      },
-      "1454284800" : {
-         "57" : 40
-      },
-      "1454371500" : {
-         "57" : 15
-      },
-      "1454457900" : {
-         "57" : 88
-      },
-      "1454371200" : {
-         "57" : 29
-      },
-      "1454285100" : {
-         "57" : 54
-      }
-   }
-}
+	{
+	   "metadata" : {
+	      "count" : 6,			// how many records returned
+	      "version" : 1,			// output version
+	      "has_more" : true,		// there are more records to fetch, we should
+						// issue another query using next_start!
+	      "next_start" : "1463011200",
+	      "cake" : false			// the cake is always a lie
+	   },
+	   "data" : {
+	      "1454457600" : {
+	         "57" : 27
+	      },
+	      "1454284800" : {
+	         "57" : 40
+	      },
+	      "1454371500" : {
+	         "57" : 15
+	      },
+	      "1454457900" : {
+	         "57" : 88
+	      },
+	      "1454371200" : {
+	         "57" : 29
+	      },
+	      "1454285100" : {
+	         "57" : 54
+	      }
+	   }
+	}
 
 Build Depends
 =============
@@ -135,13 +140,13 @@ Run Notes
 
 Running it in jdb, kinda:
 
-jdb -server -sourcepath ../../src/ -classpath Scrapi.jar com.threecrowd.cassy.ScrapiStarter -c ../../test_data/configs/sample_node_config.conf -D
-jdb -server -Xdebug -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=50000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -classpath /Users/dhawth/git/cassandra_related/scrapi/dist/lib/CassandraAPI.jar com.threecrowd.cassy.CassandraAPIDaemonLauncher -c ../../sample_node_config.conf -D
+	jdb -server -sourcepath ../../src/ -classpath Scrapi.jar com.threecrowd.cassy.ScrapiStarter -c ../../test_data/configs/sample_node_config.conf -D
+	jdb -server -Xdebug -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=50000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -classpath /Users/dhawth/git/cassandra_related/scrapi/dist/lib/CassandraAPI.jar com.threecrowd.cassy.CassandraAPIDaemonLauncher -c ../../sample_node_config.conf -D
 
 Running it normally:
 
-java -jar Scrapi.jar -c ../../test_data/configs/sample_node_config.conf
-java -cp Scrapi.jar com.threecrowd.scrapi.ScrapiStarter -c ../../test_data/configs/sample_node_config.conf
+	java -jar Scrapi.jar -c ../../test_data/configs/sample_node_config.conf
+	java -cp Scrapi.jar com.threecrowd.scrapi.ScrapiStarter -c ../../test_data/configs/sample_node_config.conf
 
 Configuration of Cassandra
 ==========================
@@ -151,15 +156,15 @@ etc, keyspaces and column families in the right format for SCRAPI.
 
 To list keyspaces and cfs:
 
-java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -l
+	java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -l
 
 To drop keyspace test:
 
-java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -k test -d -f
+	java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -k test -d -f
 
 To create keyspace and column families at the same time:
 
-java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -k test -c rollup5m -c rollup1h -c rollup1d
+	java -cp Scrapi.jar com.threecrowd.cassy.CreateCF -h localhost:9160 -k test -c rollup5m -c rollup1h -c rollup1d
 
 Notes
 =====
@@ -194,11 +199,11 @@ Upgrading to a new version of cassandra generally requires copying a few jars fr
 
 Hector switched from perf4j to speed4j at 0.8, which has to be grabbed from:
 
-git clone https://github.com/jalkanen/speed4j.git
-cd speed4j
-git checkout speed4j-0.7
-mvn clean package -DskipTests
-cp target/speed4j-0.7.jar $scrapi/lib
+	git clone https://github.com/jalkanen/speed4j.git
+	cd speed4j
+	git checkout speed4j-0.7
+	mvn clean package -DskipTests
+	cp target/speed4j-0.7.jar $scrapi/lib
 
 Hector tests also require the high-scale-lib jar, which can be grabbed from http://sourceforge.net/projects/high-scale-lib/
 Hector also requires commons-lang 2.4+, downloadable here: http://commons.apache.org/lang/download_lang.cgi
